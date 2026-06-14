@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Woof Talk — Canine Vocalization Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-paws" aria-hidden="true"></div>
+
+  <main class="app">
+    <header class="hero">
+      <div class="hero-badge">Computational Bioacoustics</div>
+      <h1>Woof Talk</h1>
+      <p class="tagline">
+        Analyze dog vocalizations using acoustic features from peer-reviewed ethology and
+        machine-learning models trained on public canine datasets.
+      </p>
+    </header>
+
+    <section class="panel capture-panel">
+      <div class="dog-avatar" id="dogAvatar" aria-hidden="true">
+        <span class="dog-face">🐕</span>
+        <span class="thought-bubble" id="thoughtBubble">...</span>
+      </div>
+
+      <div class="waveform-wrap">
+        <canvas id="waveform" width="640" height="120" aria-label="Audio waveform"></canvas>
+        <p class="waveform-hint" id="waveformHint">Record or upload a bark, whine, or growl</p>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" id="recordBtn" type="button">
+          <span class="btn-icon" id="recordIcon">🎙️</span>
+          <span id="recordLabel">Hold to Record</span>
+        </button>
+        <label class="btn btn-secondary" for="fileInput">
+          <span class="btn-icon">📁</span>
+          Upload Clip
+        </label>
+        <input id="fileInput" type="file" accept="audio/*" hidden>
+        <button class="btn btn-ghost" id="clearBtn" type="button" disabled>Clear</button>
+      </div>
+
+      <p class="mic-status" id="micStatus">Initializing...</p>
+    </section>
+
+    <section class="panel result-panel hidden" id="resultPanel">
+      <div class="analysis-row analysis-row-wide">
+        <div class="stat">
+          <span class="stat-label">Context</span>
+          <span class="stat-value" id="detectedType">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Confidence</span>
+          <span class="stat-value" id="confidence">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Motivation</span>
+          <span class="stat-value" id="mood">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Arousal</span>
+          <span class="stat-value" id="arousalValue">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Valence</span>
+          <span class="stat-value" id="valenceValue">—</span>
+        </div>
+      </div>
+
+      <article class="translation-card">
+        <p class="translation-label">Behavioral interpretation</p>
+        <blockquote class="translation-text" id="translationText"></blockquote>
+        <p class="translation-subtext" id="translationSubtext"></p>
+      </article>
+
+      <div class="feature-grid" id="featureGrid"></div>
+
+      <div class="ranking-wrap">
+        <h3>Context ranking</h3>
+        <ol class="ranking-list" id="rankingList"></ol>
+      </div>
+
+      <p class="model-meta" id="modelMeta"></p>
+
+      <div class="action-row">
+        <button class="btn btn-secondary" id="translateAgainBtn" type="button">Re-analyze</button>
+        <button class="btn btn-ghost" id="shareBtn" type="button">Copy Report</button>
+      </div>
+    </section>
+
+    <section class="panel research-panel">
+      <h2>Research & training data</h2>
+      <p class="research-intro">
+        This app combines literature-derived context prototypes (Molnár et al. 2008; Yin &amp; McCowan 2004;
+        Pongrácz et al. 2005) with a logistic-regression emotion model trained on
+        <a href="https://huggingface.co/datasets/ArlingtonCL2/BarkopediaDogEmotionClassification_Data" target="_blank" rel="noopener noreferrer">EmotionalCanines</a>.
+        Train or refresh the model with <code>python ml/train_emotion_classifier.py</code>.
+      </p>
+      <div class="dataset-catalog" id="datasetCatalog"></div>
+      <ul class="citation-list">
+        <li>Yin, S., &amp; McCowan, B. (2004). Barking in domestic dogs: context specificity and individual identification. <em>Animal Behaviour</em>.</li>
+        <li>Molnár, C., et al. (2008). Classification of dog barks: a machine learning approach. <em>Applied Animal Behaviour Science</em>.</li>
+        <li>Pongrácz, P., et al. (2005). Acoustic parameters of dog barks carry emotional information for humans. <em>Applied Animal Behaviour Science</em>.</li>
+        <li>Dang, T. M., et al. (2025). EmotionalCanines: A Dataset for Analysis of Arousal and Valence in Dog Vocalization. <em>ACM MM '25</em>.</li>
+        <li>Lekhak, H., et al. (2025). DogSpeak: A Canine Vocalization Classification Dataset. <em>ACM MM '25</em>.</li>
+      </ul>
+    </section>
+
+    <section class="panel history-panel">
+      <div class="history-header">
+        <h2>Recent analyses</h2>
+        <button class="text-btn" id="clearHistoryBtn" type="button">Clear history</button>
+      </div>
+      <ul class="history-list" id="historyList">
+        <li class="history-empty">No analyses yet. Record a vocalization to begin.</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      <p>
+        Research aid only — not veterinary or behavioral diagnosis. Context accuracy in field recordings
+        remains an open research problem (~43% in controlled Molnár et al. benchmarks).
+      </p>
+    </footer>
+  </main>
+
+  <div class="toast hidden" id="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,137 +1,411 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Woof Talk — Canine Vocalization Analysis</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Woof Talk — AI Dog Vocalization Interpreter</title>
+
+  <meta
+    name="description"
+    content="Understand what your dog may be trying to communicate using acoustic analysis, dog context, and AI-assisted interpretation."
+  />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./styles.css" />
 </head>
+
 <body>
-  <div class="bg-paws" aria-hidden="true"></div>
+  <main class="app-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="kicker">Computational Bioacoustics</span>
 
-  <main class="app">
-    <header class="hero">
-      <div class="hero-badge">Computational Bioacoustics</div>
-      <h1>Woof Talk</h1>
-      <p class="tagline">
-        Analyze dog vocalizations using acoustic features from peer-reviewed ethology and
-        machine-learning models trained on public canine datasets.
-      </p>
-    </header>
+        <h1>Woof Talk</h1>
 
-    <section class="panel capture-panel">
-      <div class="dog-avatar" id="dogAvatar" aria-hidden="true">
-        <span class="dog-face">🐕</span>
-        <span class="thought-bubble" id="thoughtBubble">...</span>
+        <p class="tagline">
+          Understand what your dog may be trying to communicate using acoustic analysis,
+          real-life context, and AI-assisted interpretation.
+        </p>
+
+        <p class="hero-disclaimer">
+          This is not literal dog-speech translation or veterinary diagnosis. It gives
+          probability-based interpretations from audio patterns, behavior context, and AI.
+        </p>
       </div>
 
-      <div class="waveform-wrap">
-        <canvas id="waveform" width="640" height="120" aria-label="Audio waveform"></canvas>
-        <p class="waveform-hint" id="waveformHint">Record or upload a bark, whine, or growl</p>
-      </div>
+      <div class="dog-stage">
+        <div id="thoughtBubble" class="thought-bubble">...</div>
 
-      <div class="controls">
-        <button class="btn btn-primary" id="recordBtn" type="button">
-          <span class="btn-icon" id="recordIcon">🎙️</span>
-          <span id="recordLabel">Hold to Record</span>
-        </button>
-        <label class="btn btn-secondary" for="fileInput">
-          <span class="btn-icon">📁</span>
-          Upload Clip
-        </label>
-        <input id="fileInput" type="file" accept="audio/*" hidden>
-        <button class="btn btn-ghost" id="clearBtn" type="button" disabled>Clear</button>
+        <div id="dogAvatar" class="dog-avatar" aria-label="Dog mascot">
+          <div class="dog-ear dog-ear-left"></div>
+          <div class="dog-ear dog-ear-right"></div>
+          <div class="dog-face">
+            <div class="dog-eye dog-eye-left"></div>
+            <div class="dog-eye dog-eye-right"></div>
+            <div class="dog-nose"></div>
+            <div class="dog-mouth"></div>
+          </div>
+        </div>
       </div>
-
-      <p class="mic-status" id="micStatus">Initializing...</p>
     </section>
 
-    <section class="panel result-panel hidden" id="resultPanel">
-      <div class="analysis-row analysis-row-wide">
-        <div class="stat">
-          <span class="stat-label">Context</span>
-          <span class="stat-value" id="detectedType">—</span>
+    <section class="panel profile-panel">
+      <div class="section-heading">
+        <span class="eyebrow">Dog profile</span>
+        <h2>Personalize the interpretation</h2>
+        <p>
+          Dog vocalizations are easier to interpret when the AI knows your dog’s normal behavior.
+        </p>
+      </div>
+
+      <div class="form-grid">
+        <label class="field">
+          <span>Dog name</span>
+          <input id="dogName" type="text" placeholder="Example: Max" />
+        </label>
+
+        <label class="field">
+          <span>Breed / mix</span>
+          <input id="dogBreed" type="text" placeholder="Example: Labrador mix" />
+        </label>
+
+        <label class="field">
+          <span>Age</span>
+          <input id="dogAge" type="text" placeholder="Example: 3 years" />
+        </label>
+
+        <label class="field field-wide">
+          <span>Normal behavior baseline</span>
+          <textarea
+            id="dogBaseline"
+            rows="3"
+            placeholder="Example: Usually quiet, barks only when someone is at the door."
+          ></textarea>
+        </label>
+      </div>
+
+      <button id="profileSaveBtn" class="btn btn-secondary" type="button">
+        Save dog profile
+      </button>
+    </section>
+
+    <section class="panel recorder-panel">
+      <div class="section-heading">
+        <span class="eyebrow">Audio analysis</span>
+        <h2>Record or upload a bark, whine, or growl</h2>
+        <p>
+          For best results, capture one clear dog vocalization with minimal background noise.
+        </p>
+      </div>
+
+      <div class="recorder-actions">
+        <button id="recordBtn" class="record-btn" type="button">
+          <span id="recordIcon" class="record-icon">🎙️</span>
+          <span id="recordLabel">Hold to Record</span>
+        </button>
+
+        <label class="upload-btn">
+          Upload Clip
+          <input
+            id="fileInput"
+            type="file"
+            accept="audio/*,.wav,.mp3,.m4a,.webm,.ogg"
+            hidden
+          />
+        </label>
+
+        <button id="clearBtn" class="btn btn-secondary" type="button" disabled>
+          Clear
+        </button>
+      </div>
+
+      <p id="micStatus" class="mic-status">Initializing...</p>
+
+      <div class="waveform-card">
+        <canvas id="waveform" width="960" height="220"></canvas>
+        <p id="waveformHint">Record or upload a bark, whine, or growl</p>
+      </div>
+    </section>
+
+    <section class="panel context-panel">
+      <div class="section-heading">
+        <span class="eyebrow">Real-life context</span>
+        <h2>What was happening?</h2>
+        <p>
+          The same bark can mean different things depending on the situation and body language.
+        </p>
+      </div>
+
+      <label class="field">
+        <span>Trigger / situation</span>
+        <select id="sceneTrigger">
+          <option value="">Unknown / not sure</option>
+          <option value="doorbell_or_stranger">Doorbell, stranger, or outside noise</option>
+          <option value="owner_leaving">Owner leaving / dog alone</option>
+          <option value="food_or_toy_request">Food, toy, or object request</option>
+          <option value="walk_or_routine">Walk or known routine</option>
+          <option value="play">Play or excitement</option>
+          <option value="another_dog">Another dog or animal nearby</option>
+          <option value="fear_or_stress">Fear, stress, hiding, or avoidance</option>
+          <option value="pain_or_unusual">Pain signs or unusual sudden behavior</option>
+        </select>
+      </label>
+
+      <div class="check-grid">
+        <label>
+          <input type="checkbox" data-body-language value="tail_wagging" />
+          Tail wagging
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="tail_stiff" />
+          Tail stiff
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="ears_forward" />
+          Ears forward
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="ears_back" />
+          Ears back
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="pacing" />
+          Pacing
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="hiding" />
+          Hiding
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="jumping" />
+          Jumping
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="growling" />
+          Growling
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="looking_at_door" />
+          Looking at door/window
+        </label>
+
+        <label>
+          <input type="checkbox" data-body-language value="looking_at_owner" />
+          Looking at owner
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Extra notes</span>
+        <textarea
+          id="sceneNotes"
+          rows="3"
+          placeholder="Example: He barked right after hearing the elevator outside."
+        ></textarea>
+      </label>
+    </section>
+
+    <section id="resultPanel" class="panel result-panel hidden">
+      <div class="section-heading">
+        <span class="eyebrow">Analysis result</span>
+        <h2>Behavioral interpretation</h2>
+        <p>
+          The first result comes from acoustic/context models. The AI card adds a clearer,
+          owner-friendly explanation.
+        </p>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span>Context</span>
+          <strong id="detectedType">—</strong>
         </div>
-        <div class="stat">
-          <span class="stat-label">Confidence</span>
-          <span class="stat-value" id="confidence">—</span>
+
+        <div class="metric-card">
+          <span>Confidence</span>
+          <strong id="confidence">—</strong>
         </div>
-        <div class="stat">
-          <span class="stat-label">Motivation</span>
-          <span class="stat-value" id="mood">—</span>
+
+        <div class="metric-card">
+          <span>Motivation</span>
+          <strong id="mood">—</strong>
         </div>
-        <div class="stat">
-          <span class="stat-label">Arousal</span>
-          <span class="stat-value" id="arousalValue">—</span>
+
+        <div class="metric-card">
+          <span>Arousal</span>
+          <strong id="arousalValue">—</strong>
         </div>
-        <div class="stat">
-          <span class="stat-label">Valence</span>
-          <span class="stat-value" id="valenceValue">—</span>
+
+        <div class="metric-card">
+          <span>Valence</span>
+          <strong id="valenceValue">—</strong>
         </div>
       </div>
 
-      <article class="translation-card">
-        <p class="translation-label">Behavioral interpretation</p>
-        <blockquote class="translation-text" id="translationText"></blockquote>
-        <p class="translation-subtext" id="translationSubtext"></p>
-      </article>
-
-      <div class="feature-grid" id="featureGrid"></div>
-
-      <div class="ranking-wrap">
-        <h3>Context ranking</h3>
-        <ol class="ranking-list" id="rankingList"></ol>
+      <div class="translation-card">
+        <p id="translationText"></p>
+        <p id="translationSubtext"></p>
       </div>
 
-      <p class="model-meta" id="modelMeta"></p>
+      <div id="qualityStatus" class="quality-status hidden"></div>
 
-      <div class="action-row">
-        <button class="btn btn-secondary" id="translateAgainBtn" type="button">Re-analyze</button>
-        <button class="btn btn-ghost" id="shareBtn" type="button">Copy Report</button>
+      <div id="aiCard" class="ai-card hidden">
+        <div class="ai-card-head">
+          <span class="eyebrow">AI interpretation</span>
+          <strong id="aiConfidence">Confidence —</strong>
+        </div>
+
+        <h3 id="aiMeaning">Waiting for AI interpretation...</h3>
+
+        <blockquote id="aiPhrase"></blockquote>
+
+        <div class="ai-section">
+          <h4>Why this interpretation?</h4>
+          <ul id="aiWhy"></ul>
+        </div>
+
+        <div class="ai-section">
+          <h4>Possible meanings</h4>
+          <ul id="aiPossibilities"></ul>
+        </div>
+
+        <div class="ai-section">
+          <h4>Recommended response</h4>
+          <p id="aiAction"></p>
+        </div>
+
+        <div id="aiWarnings" class="ai-warnings hidden"></div>
+
+        <p id="aiDisclaimer" class="ai-disclaimer"></p>
+      </div>
+
+      <div class="analysis-grid">
+        <div class="analysis-card">
+          <h3>Acoustic features</h3>
+          <div id="featureGrid" class="feature-grid"></div>
+        </div>
+
+        <div class="analysis-card">
+          <h3>Context ranking</h3>
+          <ul id="rankingList" class="ranking-list"></ul>
+        </div>
+      </div>
+
+      <p id="modelMeta" class="model-meta"></p>
+
+      <div class="feedback-card">
+        <p>Was this interpretation accurate?</p>
+
+        <div class="feedback-buttons">
+          <button class="btn btn-secondary" type="button" data-feedback="yes">
+            Yes
+          </button>
+
+          <button class="btn btn-secondary" type="button" data-feedback="somewhat">
+            Somewhat
+          </button>
+
+          <button class="btn btn-secondary" type="button" data-feedback="no">
+            No
+          </button>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button id="translateAgainBtn" class="btn btn-primary" type="button">
+          Re-analyze
+        </button>
+
+        <button id="shareBtn" class="btn btn-secondary" type="button">
+          Copy Report
+        </button>
       </div>
     </section>
 
     <section class="panel research-panel">
-      <h2>Research & training data</h2>
-      <p class="research-intro">
-        This app combines literature-derived context prototypes (Molnár et al. 2008; Yin &amp; McCowan 2004;
-        Pongrácz et al. 2005) with a logistic-regression emotion model trained on
-        <a href="https://huggingface.co/datasets/ArlingtonCL2/BarkopediaDogEmotionClassification_Data" target="_blank" rel="noopener noreferrer">EmotionalCanines</a>.
-        Train or refresh the model with <code>python ml/train_emotion_classifier.py</code>.
-      </p>
-      <div class="dataset-catalog" id="datasetCatalog"></div>
-      <ul class="citation-list">
-        <li>Yin, S., &amp; McCowan, B. (2004). Barking in domestic dogs: context specificity and individual identification. <em>Animal Behaviour</em>.</li>
-        <li>Molnár, C., et al. (2008). Classification of dog barks: a machine learning approach. <em>Applied Animal Behaviour Science</em>.</li>
-        <li>Pongrácz, P., et al. (2005). Acoustic parameters of dog barks carry emotional information for humans. <em>Applied Animal Behaviour Science</em>.</li>
-        <li>Dang, T. M., et al. (2025). EmotionalCanines: A Dataset for Analysis of Arousal and Valence in Dog Vocalization. <em>ACM MM '25</em>.</li>
-        <li>Lekhak, H., et al. (2025). DogSpeak: A Canine Vocalization Classification Dataset. <em>ACM MM '25</em>.</li>
-      </ul>
+      <div class="section-heading">
+        <span class="eyebrow">Research base</span>
+        <h2>Research & training data</h2>
+        <p>
+          This app combines literature-derived context prototypes with an emotion model
+          trained on public canine vocalization datasets.
+        </p>
+      </div>
+
+      <div id="datasetCatalog" class="dataset-catalog"></div>
+
+      <div class="research-notes">
+        <ul>
+          <li>
+            Yin, S., & McCowan, B. (2004). Barking in domestic dogs:
+            context specificity and individual identification. <em>Animal Behaviour</em>.
+          </li>
+
+          <li>
+            Molnár, C., et al. (2008). Classification of dog barks:
+            a machine learning approach. <em>Applied Animal Behaviour Science</em>.
+          </li>
+
+          <li>
+            Pongrácz, P., et al. (2005). Acoustic parameters of dog barks
+            carry emotional information for humans.
+            <em>Applied Animal Behaviour Science</em>.
+          </li>
+
+          <li>
+            Dang, T. M., et al. (2025). EmotionalCanines: A Dataset for
+            Analysis of Arousal and Valence in Dog Vocalization.
+          </li>
+
+          <li>
+            Lekhak, H., et al. (2025). DogSpeak: A Canine Vocalization
+            Classification Dataset.
+          </li>
+        </ul>
+      </div>
     </section>
 
     <section class="panel history-panel">
-      <div class="history-header">
-        <h2>Recent analyses</h2>
-        <button class="text-btn" id="clearHistoryBtn" type="button">Clear history</button>
+      <div class="history-head">
+        <div>
+          <span class="eyebrow">Session memory</span>
+          <h2>Recent analyses</h2>
+        </div>
+
+        <button id="clearHistoryBtn" class="btn btn-secondary" type="button">
+          Clear history
+        </button>
       </div>
-      <ul class="history-list" id="historyList">
-        <li class="history-empty">No analyses yet. Record a vocalization to begin.</li>
+
+      <ul id="historyList" class="history-list">
+        <li>No analyses yet. Record a vocalization to begin.</li>
       </ul>
     </section>
 
-    <footer class="footer">
-      <p>
-        Research aid only — not veterinary or behavioral diagnosis. Context accuracy in field recordings
-        remains an open research problem (~43% in controlled Molnár et al. benchmarks).
-      </p>
-    </footer>
+    <p class="footer-note">
+      Research aid only — not veterinary or behavioral diagnosis. Real-life dog
+      vocalization context remains uncertain and should be interpreted carefully.
+    </p>
   </main>
 
-  <div class="toast hidden" id="toast" role="status"></div>
+  <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

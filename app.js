@@ -8,6 +8,14 @@ import {
   loadEmotionModel,
   predictEmotion,
 } from "./js/emotion-model.js";
+import { assessAudioQuality } from "./js/quality-check.js";
+import {
+  getDogProfile,
+  getSceneContext,
+  hydrateDogProfile,
+  saveDogProfile
+} from "./js/profile-context.js";
+import { requestAiInterpretation } from "./js/ai-client.js";
 
 const recordBtn = document.getElementById("recordBtn");
 const recordLabel = document.getElementById("recordLabel");
@@ -35,6 +43,17 @@ const shareBtn = document.getElementById("shareBtn");
 const historyList = document.getElementById("historyList");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const toast = document.getElementById("toast");
+const profileSaveBtn = document.getElementById("profileSaveBtn");
+const qualityStatus = document.getElementById("qualityStatus");
+const aiCard = document.getElementById("aiCard");
+const aiConfidence = document.getElementById("aiConfidence");
+const aiMeaning = document.getElementById("aiMeaning");
+const aiPhrase = document.getElementById("aiPhrase");
+const aiWhy = document.getElementById("aiWhy");
+const aiPossibilities = document.getElementById("aiPossibilities");
+const aiAction = document.getElementById("aiAction");
+const aiWarnings = document.getElementById("aiWarnings");
+const aiDisclaimer = document.getElementById("aiDisclaimer");
 
 const canvasCtx = waveformCanvas.getContext("2d");
 const HISTORY_KEY = "woof-talk-history-v2";
@@ -186,6 +205,134 @@ async function drawBufferWaveform(buffer) {
   drawWaveform(dataArray);
 }
 
+function renderQualityStatus(quality) {
+  if (!qualityStatus) return;
+
+  qualityStatus.classList.remove("hidden", "good", "warning", "bad");
+
+  if (quality.score >= 70) {
+    qualityStatus.classList.add("good");
+  } else if (quality.score >= 45) {
+    qualityStatus.classList.add("warning");
+  } else {
+    qualityStatus.classList.add("bad");
+  }
+
+  const issueHtml = quality.issues.length
+    ? `<ul>${quality.issues.map((issue) => `<li>${issue}</li>`).join("")}</ul>`
+    : "<p>Audio quality looks good for analysis.</p>";
+
+  qualityStatus.innerHTML = `
+    <strong>${quality.label} · ${quality.score}/100</strong>
+    ${issueHtml}
+  `;
+}
+
+function renderAiLoading() {
+  if (!aiCard) return;
+
+  aiCard.classList.remove("hidden");
+  aiConfidence.textContent = "Confidence —";
+  aiMeaning.textContent = "Generating AI interpretation...";
+  aiPhrase.textContent = "";
+  aiWhy.innerHTML = "";
+  aiPossibilities.innerHTML = "";
+  aiAction.textContent = "";
+  aiWarnings.classList.add("hidden");
+  aiWarnings.innerHTML = "";
+  aiDisclaimer.textContent = "";
+}
+
+function renderAiError(message) {
+  if (!aiCard) return;
+
+  aiCard.classList.remove("hidden");
+  aiConfidence.textContent = "Confidence low";
+  aiMeaning.textContent = "AI interpretation unavailable";
+  aiPhrase.textContent = "The app still completed the acoustic analysis, but the LLM interpretation could not be generated.";
+  aiWhy.innerHTML = `<li>${message}</li>`;
+  aiPossibilities.innerHTML = "";
+  aiAction.textContent = "Try again, or check that the Vercel environment variable OPENAI_API_KEY is set.";
+  aiWarnings.classList.add("hidden");
+  aiWarnings.innerHTML = "";
+  aiDisclaimer.textContent = "This tool is not a veterinary diagnosis or literal dog-language translator.";
+}
+
+function renderAiResult(ai) {
+  if (!aiCard || !ai) return;
+
+  aiCard.classList.remove("hidden");
+
+  aiConfidence.textContent = `Confidence ${ai.confidenceLevel} · ${Math.round(
+    ai.confidenceScore * 100
+  )}%`;
+
+  aiMeaning.textContent = ai.likelyMeaning;
+  aiPhrase.textContent = `“${ai.humanPhrase}”`;
+
+  aiWhy.innerHTML = (ai.why || [])
+    .map((item) => `<li>${item}</li>`)
+    .join("");
+
+  aiPossibilities.innerHTML = (ai.possibleMeanings || [])
+    .map(
+      (item) => `
+        <li>
+          <strong>${item.label}</strong>
+          <span>${Math.round(item.probability * 100)}%</span>
+          <small>${item.reason}</small>
+        </li>
+      `
+    )
+    .join("");
+
+  aiAction.textContent = ai.recommendedAction || "";
+
+  if (ai.warnings?.length) {
+    aiWarnings.classList.remove("hidden");
+    aiWarnings.innerHTML = `
+      <strong>Important</strong>
+      <ul>${ai.warnings.map((warning) => `<li>${warning}</li>`).join("")}</ul>
+    `;
+  } else {
+    aiWarnings.classList.add("hidden");
+    aiWarnings.innerHTML = "";
+  }
+
+  aiDisclaimer.textContent =
+    ai.disclaimer ||
+    "This is an AI-assisted interpretation, not a literal translation or veterinary diagnosis.";
+}
+
+function saveFeedback(rating) {
+  if (!lastTranslation) return;
+
+  const key = "woof-talk-feedback-v1";
+
+  let entries = [];
+
+  try {
+    entries = JSON.parse(localStorage.getItem(key) || "[]");
+  } catch {
+    entries = [];
+  }
+
+  entries.unshift({
+    rating,
+    createdAt: new Date().toISOString(),
+    context: lastTranslation.contextResult?.label,
+    arousal: lastTranslation.emotionResult?.arousal?.label,
+    valence: lastTranslation.emotionResult?.valence?.label,
+    aiMeaning: lastTranslation.ai?.likelyMeaning || "",
+    dogProfile: lastTranslation.dogProfile || {},
+    sceneContext: lastTranslation.sceneContext || {},
+    quality: lastTranslation.quality || null
+  });
+
+  localStorage.setItem(key, JSON.stringify(entries.slice(0, 50)));
+  showToast("Feedback saved. This can be used later for personalization.");
+}
+
 async function translateCurrentAudio() {
   if (!currentAudioBuffer) return;
 
@@ -197,9 +344,17 @@ async function translateCurrentAudio() {
 
   const ctx = await ensureAudioContext();
   const { vector, summary } = await extractFeaturesFromBuffer(currentAudioBuffer, ctx);
+
+  const quality = assessAudioQuality(summary);
+  const dogProfile = getDogProfile();
+  const sceneContext = getSceneContext();
+
+  renderQualityStatus(quality);
+
   const contextResult = classifyContext(vector);
 
   let emotionResult = null;
+
   try {
     emotionResult = emotionModel
       ? predictEmotion(emotionModel, vector)
@@ -209,13 +364,30 @@ async function translateCurrentAudio() {
   }
 
   const composed = composeTranslation(contextResult, emotionResult);
-  lastTranslation = { contextResult, emotionResult, composed, summary };
+
+  lastTranslation = {
+    contextResult,
+    emotionResult,
+    composed,
+    summary,
+    quality,
+    dogProfile,
+    sceneContext,
+    ai: null
+  };
 
   detectedType.textContent = contextResult.label;
   confidence.textContent = `${Math.round(contextResult.confidence * 100)}%`;
   mood.textContent = contextResult.mood;
-  arousalValue.textContent = `${emotionResult.arousal.label} (${Math.round(emotionResult.arousal.confidence * 100)}%)`;
-  valenceValue.textContent = `${emotionResult.valence.label} (${Math.round(emotionResult.valence.confidence * 100)}%)`;
+
+  arousalValue.textContent = `${emotionResult.arousal.label} (${Math.round(
+    emotionResult.arousal.confidence * 100
+  )}%)`;
+
+  valenceValue.textContent = `${emotionResult.valence.label} (${Math.round(
+    emotionResult.valence.confidence * 100
+  )}%)`;
+
   translationText.textContent = composed.primary;
   translationSubtext.textContent = composed.secondary;
 
@@ -226,21 +398,31 @@ async function translateCurrentAudio() {
           <span class="feature-chip-label">${item.label}</span>
           <span class="feature-chip-value">${item.value}</span>
         </div>
-      `,
+      `
     )
     .join("");
 
   rankingList.innerHTML = contextResult.ranking
     .map(
-      (entry) =>
-        `<li><span>${entry.label}</span><span>${Math.round(entry.score * 100)}%</span></li>`,
+      (entry) => `
+        <li>
+          <span>${entry.label}</span>
+          <strong>${Math.round(entry.score * 100)}%</strong>
+        </li>
+      `
     )
     .join("");
 
   if (emotionResult.meta?.crossValidation?.note) {
     modelMeta.textContent = emotionResult.meta.crossValidation.note;
   } else if (emotionResult.meta?.crossValidation?.arousalAccuracy) {
-    modelMeta.textContent = `Emotion model trained on ${emotionResult.meta.samplesTrained} clips from EmotionalCanines. CV accuracy — arousal ${Math.round(emotionResult.meta.crossValidation.arousalAccuracy * 100)}%, valence ${Math.round(emotionResult.meta.crossValidation.valenceAccuracy * 100)}%.`;
+    modelMeta.textContent = `Emotion model trained on ${
+      emotionResult.meta.samplesTrained
+    } clips from EmotionalCanines. CV accuracy — arousal ${Math.round(
+      emotionResult.meta.crossValidation.arousalAccuracy * 100
+    )}%, valence ${Math.round(
+      emotionResult.meta.crossValidation.valenceAccuracy * 100
+    )}%.`;
   } else if (emotionResult.meta?.fallback) {
     modelMeta.textContent =
       "Emotion model unavailable — using literature-based heuristic fallback. Run ml/train_emotion_classifier.py to load the trained model.";
@@ -252,58 +434,53 @@ async function translateCurrentAudio() {
 
   resultPanel.classList.remove("hidden");
   setDogState("idle", "!");
-  waveformHint.textContent = "Analysis complete";
+  waveformHint.textContent = "Acoustic analysis complete";
   clearBtn.disabled = false;
-  addHistoryEntry(lastTranslation);
-}
 
-async function handleAudioBlob(blob) {
-  revokeCurrentBlobUrl();
-  currentBlobUrl = URL.createObjectURL(blob);
-  await ensureAudioContext();
-  const arrayBuffer = await blob.arrayBuffer();
-  currentAudioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-  await drawBufferWaveform(currentAudioBuffer);
-  await translateCurrentAudio();
-}
+  renderAiLoading();
 
-async function startRecording() {
-  if (isRecording) return;
+  const aiPayload = {
+    acousticSummary: summary,
+    audioQuality: quality,
+    contextPrediction: {
+      id: contextResult.id,
+      label: contextResult.label,
+      confidence: contextResult.confidence,
+      mood: contextResult.mood,
+      ethology: contextResult.ethology,
+      ranking: contextResult.ranking
+    },
+    emotionPrediction: {
+      arousal: emotionResult.arousal,
+      valence: emotionResult.valence
+    },
+    dogProfile,
+    sceneContext,
+    safetyFlags: {
+      possiblePainOrUnusualBehavior:
+        sceneContext.trigger === "pain_or_unusual" ||
+        sceneContext.bodyLanguage.includes("hiding"),
+      growlingReported: sceneContext.bodyLanguage.includes("growling"),
+      lowAudioQuality: !quality.pass
+    }
+  };
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    await ensureAudioContext();
-    sourceNode = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    sourceNode.connect(analyser);
-    animateLiveWaveform();
+    if (!quality.pass) {
+      aiPayload.systemNote =
+        "The audio quality is poor. The interpretation should be cautious and low-confidence.";
+    }
 
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) audioChunks.push(event.data);
-    };
-    mediaRecorder.onstop = async () => {
-      stopLiveWaveform();
-      stream.getTracks().forEach((track) => track.stop());
-      sourceNode?.disconnect();
-      analyser = null;
-      sourceNode = null;
-      if (audioChunks.length === 0) return;
-      await handleAudioBlob(new Blob(audioChunks, { type: "audio/webm" }));
-    };
-
-    mediaRecorder.start();
-    isRecording = true;
-    recordBtn.classList.add("recording");
-    recordLabel.textContent = "Release to Stop";
-    recordIcon.textContent = "⏹️";
-    micStatus.textContent = "Recording — keep microphone near the dog";
-    setDogState("listening", "...");
-  } catch {
-    micStatus.textContent = "Microphone access denied or unavailable.";
-    showToast("Could not access microphone.");
+    const ai = await requestAiInterpretation(aiPayload);
+    lastTranslation.ai = ai;
+    renderAiResult(ai);
+    waveformHint.textContent = "AI interpretation complete";
+  } catch (error) {
+    renderAiError(error.message);
+    waveformHint.textContent = "Acoustic analysis complete · AI unavailable";
   }
+
+  addHistoryEntry(lastTranslation);
 }
 
 function stopRecording() {
@@ -402,10 +579,11 @@ translateAgainBtn.addEventListener("click", () => {
 shareBtn.addEventListener("click", async () => {
   if (!lastTranslation) return;
   const text = [
-    `Context: ${lastTranslation.contextResult.label}`,
-    `Arousal/Valence: ${lastTranslation.emotionResult.arousal.label}/${lastTranslation.emotionResult.valence.label}`,
-    `Interpretation: ${lastTranslation.composed.primary}`,
-    "— Woof Talk (research-backed canine vocal analysis)",
+    `Interpretation: ${
+  lastTranslation.ai?.humanPhrase ||
+  lastTranslation.ai?.likelyMeaning ||
+  lastTranslation.composed.primary
+}`,
   ].join("\n");
   try {
     await navigator.clipboard.writeText(text);
@@ -421,7 +599,18 @@ clearHistoryBtn.addEventListener("click", () => {
   showToast("History cleared.");
 });
 
+profileSaveBtn?.addEventListener("click", () => {
+  saveDogProfile();
+  showToast("Dog profile saved.");
+});
+
+document.querySelectorAll("[data-feedback]").forEach((button) => {
+  button.addEventListener("click", () => {
+    saveFeedback(button.dataset.feedback);
+  });
+});
 async function bootstrap() {
+  hydrateDogProfile();
   renderDatasetCatalog();
   renderHistory();
   drawFlatWaveform("Waiting for audio");

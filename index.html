@@ -406,6 +406,37 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="./app.js"></script>
+  <script>
+  window.addEventListener("error", function (event) {
+    const micStatus = document.getElementById("micStatus");
+    const waveformHint = document.getElementById("waveformHint");
+
+    const message =
+      "Frontend error: " +
+      (event.message || "Unknown error") +
+      (event.filename ? " in " + event.filename : "");
+
+    console.error(message, event.error);
+
+    if (micStatus) micStatus.textContent = message;
+    if (waveformHint) waveformHint.textContent = "Open DevTools Console for details.";
+  });
+
+  window.addEventListener("unhandledrejection", function (event) {
+    const micStatus = document.getElementById("micStatus");
+    const waveformHint = document.getElementById("waveformHint");
+
+    const message =
+      "Promise error: " +
+      (event.reason?.message || event.reason || "Unknown promise error");
+
+    console.error(message, event.reason);
+
+    if (micStatus) micStatus.textContent = message;
+    if (waveformHint) waveformHint.textContent = "Open DevTools Console for details.";
+  });
+</script>
+
+<script type="module" src="./app.js"></script>
 </body>
 </html>

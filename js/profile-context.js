@@ -37,10 +37,15 @@ export function hydrateDogProfile() {
   try {
     const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
 
-    if (saved.name) document.getElementById("dogName").value = saved.name;
-    if (saved.breed) document.getElementById("dogBreed").value = saved.breed;
-    if (saved.age) document.getElementById("dogAge").value = saved.age;
-    if (saved.baseline) document.getElementById("dogBaseline").value = saved.baseline;
+    const dogName = document.getElementById("dogName");
+    const dogBreed = document.getElementById("dogBreed");
+    const dogAge = document.getElementById("dogAge");
+    const dogBaseline = document.getElementById("dogBaseline");
+
+    if (dogName && saved.name) dogName.value = saved.name;
+    if (dogBreed && saved.breed) dogBreed.value = saved.breed;
+    if (dogAge && saved.age) dogAge.value = saved.age;
+    if (dogBaseline && saved.baseline) dogBaseline.value = saved.baseline;
   } catch {
     // Ignore broken localStorage data.
   }

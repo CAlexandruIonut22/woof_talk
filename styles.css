@@ -788,3 +788,168 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* === Recorder UI Fix === */
+
+.recorder-panel {
+  overflow: hidden;
+}
+
+.recorder-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+
+.record-btn,
+.upload-btn,
+.btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.record-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7a18, #ffb347);
+  color: #ffffff;
+  box-shadow: 0 14px 34px rgba(255, 122, 24, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.record-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(255, 122, 24, 0.34);
+}
+
+.record-btn.recording {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  animation: recordPulse 1s infinite;
+}
+
+.record-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid rgba(43, 33, 24, 0.12);
+  box-shadow: 0 10px 26px rgba(43, 33, 24, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(43, 33, 24, 0.12);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 999px;
+}
+
+.btn-primary {
+  background: #111111;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid rgba(43, 33, 24, 0.12);
+  box-shadow: 0 10px 26px rgba(43, 33, 24, 0.08);
+}
+
+.btn:disabled,
+.clear-btn:disabled,
+#clearBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.mic-status {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.waveform-card {
+  position: relative;
+  width: 100%;
+  min-height: 230px;
+  padding: 18px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.10), transparent 34%),
+    #fffaf5;
+  border: 1px solid rgba(43, 33, 24, 0.08);
+  overflow: hidden;
+}
+
+#waveform {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+#waveformHint {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+@keyframes recordPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.36);
+  }
+
+  70% {
+    box-shadow: 0 0 0 16px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Prevent horizontal page overflow */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}

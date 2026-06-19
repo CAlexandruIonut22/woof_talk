@@ -28,7 +28,7 @@ export function assessAudioQuality(summary) {
 
   if (summary.barkCount === 0 && !summary.f0Mean) {
     score -= 30;
-    issues.push("No clear bark/whine/growl pattern was detected.");
+    issues.push("No clear bark, whine, or growl pattern was detected.");
   }
 
   if (summary.high > 0.55 && summary.rms < 0.04) {
